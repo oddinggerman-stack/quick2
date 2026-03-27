@@ -1,0 +1,2 @@
+- name: Restart FRR service
+  command: /usr/local/etc/rc.d/frr restart
