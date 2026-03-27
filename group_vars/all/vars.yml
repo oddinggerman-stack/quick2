@@ -1,0 +1,22 @@
+---
+
+#generic api-toegang Pfsense
+pfsense_host: "https://192.168.1.1" 
+pfsense_ssh_port: 22
+# SSH authenticatie (globaal)
+ansible_user: root
+ansible_ssh_port: 22
+ansible_ssh_private_key_file: ~/.ssh/pfsense_id_rsa
+# (optioneel, NIET aanbevolen. Indien toch in gebruik denk dan aan dependency sshpass)
+ansible_ssh_pass: Welkom01!
+ansible_ssh_transfer_method: scp
+
+# FRR / BGP settings			#<-aanpassen naar eigen waarden. Denk eraan, prefix staat nog niet als variabele. BGP 'set' de parameter: Redistribute connected by default aan. Daarmee redistribute BGP standaard alle connected subnets in een routing table
+frr_hostname: pfSense.home.arpa
+
+bgp_local_as: 65001
+bgp_router_id: 192.168.1.1
+
+bgp_neighbors:
+  - ip: 169.254.21.2
+    as: 65515
