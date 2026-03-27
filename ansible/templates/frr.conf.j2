@@ -1,0 +1,19 @@
+frr version 8.4.4
+frr defaults traditional
+hostname azure-vpn-router
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+router bgp {{ bgp_local_as }}
+ bgp router-id {{ bgp_router_id }}
+ no bgp ebgp-requires-policy
+ neighbor {{ bgp_peer_ip }} remote-as {{ bgp_peer_as }}
+ neighbor {{ bgp_peer_ip }} description {{ bgp_peer_description }}
+ neighbor {{ bgp_peer_ip }} disable-connected-check
+ !
+ address-family ipv4 unicast
+  neighbor {{ bgp_peer_ip }} activate
+  network {{ bgp_local_prefix }}
+ exit-address-family
+exit
+!
