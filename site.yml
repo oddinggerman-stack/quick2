@@ -1,0 +1,6 @@
+---
+- name: Configure pfSense
+  hosts: pfsense
+  gather_facts: false
+  roles:				
+     - pfsense_bgp
