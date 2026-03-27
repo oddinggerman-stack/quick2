@@ -1,0 +1,57 @@
+---
+- name: Configureer FRR BGP op Azure VPN router
+  hosts: vpn
+  become: yes
+
+  vars:
+    bgp_local_as: 65002
+    bgp_peer_as: 65001
+    bgp_router_id: "10.1.5.4"
+    bgp_peer_ip: "192.168.1.1"
+    bgp_local_prefix: "10.1.0.0/28"
+    bgp_peer_description: "Skylab-pfSense"
+
+  tasks:
+    - name: of FRR geinstalleerd is
+      ansible.builtin.package:
+        name:
+          - frr
+          - frr-pythontools
+        state: present
+
+    - name: Activeer BGP in FRR
+      ansible.builtin.lineinfile:
+        path: /etc/frr/daemons
+        regexp: '^bgpd='
+        line: 'bgpd=yes'
+      notify: restart frr
+
+    - name: Deploy FRR BGP configuratie met een template
+      ansible.builtin.template:
+        src: frr.conf.j2
+        dest: /etc/frr/frr.conf
+        owner: frr
+        group: frr
+        mode: '0640'
+      notify: restart frr
+
+    - name: creert IPsec route
+      ansible.builtin.command:
+        cmd: ip route add {{ bgp_local_prefix.split('/')[0] | regex_replace('\\.\\d+$', '.0') }}/{{ bgp_local_prefix.split('/')[1] }} via 10.1.5.1 dev eth0
+      ignore_errors: true
+
+    - name: checkt BGP status
+      ansible.builtin.command: vtysh -c "show bgp summary"
+      register: bgp_status
+      changed_when: false
+
+    - name: Toon BGP status
+      ansible.builtin.debug:
+        msg: "{{ bgp_status.stdout }}"
+
+  handlers:
+    - name: restart frr
+      ansible.builtin.systemd:
+        name: frr
+        state: restarted
+        enabled: yes
