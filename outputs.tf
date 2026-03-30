@@ -18,3 +18,19 @@ output "dashboard_fqdn" {
 output "telemetry_fqdn" {
   value = module.aci.telemetry_fqdn
 }
+
+output "storage_account_name" {
+  value = module.storage.storage_account_name
+}
+
+output "storage_file_share" {
+  value = module.storage.file_share_name
+}
+
+output "vpn_public_ip" {
+  value = module.vpn.vpn_public_ip
+}
+
+output "storage_alert_id" {
+  value = module.monitoring.storage_alert_id
+}

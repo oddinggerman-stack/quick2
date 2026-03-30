@@ -17,3 +17,7 @@ output "subnet_mgmt_id" {
 output "subnet_telemetry_id" {
   value = azurerm_subnet.sb_telemetry.id
 }
+
+output "subnet_vpn_id" {
+  value = azurerm_subnet.sb_vpn.id
+}

@@ -8,15 +8,10 @@
     game_port: 7777
 
   tasks:
-    - name: Wacht tot SSH beschikbaar is
-      ansible.builtin.wait_for_connection:
-        delay: 10
-        timeout: 120
-
     - name: Verzamel facts
       ansible.builtin.gather_facts:
 
-    # ── Disk configuratie ──────────────────────────────────────────────────
+    #Disk configuratie 
     - name: Controleer of data disk al geformateerd is
       ansible.builtin.command: blkid /dev/sdc
       register: blkid_result
@@ -43,7 +38,7 @@
         opts: defaults,nofail
         state: mounted
 
-    # ── Packages ───────────────────────────────────────────────────────────
+    # Packages
     - name: Installeer benodigde packages
       ansible.builtin.apt:
         name:
@@ -53,13 +48,13 @@
         state: present
         update_cache: yes
 
-    # ── Firewall (UFW) ─────────────────────────────────────────────────────
+    # Firewall (UFW)
     - name: Sta SSH toe vanuit management subnet
       community.general.ufw:
         rule: allow
         port: '22'
         proto: tcp
-        src: '10.1.3.0/26'
+        src: '{{ admin_ip | default("any") }}'
 
     - name: Sta UDP game verkeer toe
       community.general.ufw:
@@ -86,14 +81,14 @@
         policy: deny
         direction: incoming
 
-    # ── Docker health check ────────────────────────────────────────────────
+    #Docker health check
     - name: Controleer of Docker actief is
       ansible.builtin.systemd:
         name: docker
         state: started
         enabled: yes
 
-    # ── Verificatie ────────────────────────────────────────────────────────
+    # Verificatie 
     - name: Toon disk mount status
       ansible.builtin.command: df -h {{ game_data_mount }}
       register: df_output
@@ -102,3 +97,31 @@
     - name: Print disk status
       ansible.builtin.debug:
         msg: "{{ df_output.stdout }}"
+
+    - name: Haal storage key op via Azure CLI
+      ansible.builtin.command:
+        cmd: az storage account keys list --resource-group s1202501 --account-name dp5storageprod --query "[0].value" --output tsv
+      register: storage_key
+      delegate_to: localhost
+      become: false
+      run_once: true
+      changed_when: false
+
+    - name: Zorg dat cifs-utils geinstalleerd is
+      ansible.builtin.apt:
+        name: cifs-utils
+        state: present
+
+    - name: Maak mount point aan
+      ansible.builtin.file:
+        path: /mnt/gameconfigs
+        state: directory
+        mode: '0755'
+
+    - name: Mount Azure File Share
+      ansible.posix.mount:
+        path: /mnt/gameconfigs
+        src: //dp5storageprod.file.core.windows.net/gameconfigs
+        fstype: cifs
+        opts: "username=dp5storageprod,password={{ storage_key.stdout }},serverino,vers=3.0"
+        state: mounted

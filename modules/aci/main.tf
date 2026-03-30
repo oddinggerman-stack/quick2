@@ -11,6 +11,7 @@ resource "azurerm_container_group" "matchmaking" {
   os_type             = "Linux"
   ip_address_type     = "Public"
   dns_name_label      = "${lower(var.prefix)}-matchmaking-${random_integer.suffix.result}"
+  restart_policy = "Always"
 
   image_registry_credential {
     server   = var.acr_login_server
@@ -25,7 +26,7 @@ resource "azurerm_container_group" "matchmaking" {
     memory = "0.5"
 
     ports {
-      port     = 8080
+      port     = 80
       protocol = "TCP"
     }
   }
@@ -39,6 +40,7 @@ resource "azurerm_container_group" "dashboard" {
   os_type             = "Linux"
   ip_address_type     = "Public"
   dns_name_label      = "${lower(var.prefix)}-dashboard-${random_integer.suffix.result}"
+  restart_policy = "Always"
 
   image_registry_credential {
     server   = var.acr_login_server
@@ -53,7 +55,7 @@ resource "azurerm_container_group" "dashboard" {
     memory = "0.5"
 
     ports {
-      port     = 8080
+      port     = 80
       protocol = "TCP"
     }
   }
@@ -67,6 +69,7 @@ resource "azurerm_container_group" "telemetry" {
   os_type             = "Linux"
   ip_address_type     = "Public"
   dns_name_label      = "${lower(var.prefix)}-telemetry-${random_integer.suffix.result}"
+  restart_policy = "Always"
 
   image_registry_credential {
     server   = var.acr_login_server
@@ -81,7 +84,7 @@ resource "azurerm_container_group" "telemetry" {
     memory = "0.5"
 
     ports {
-      port     = 8080
+      port     = 80
       protocol = "TCP"
     }
   }

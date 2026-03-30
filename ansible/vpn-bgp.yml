@@ -10,6 +10,10 @@
     bgp_peer_ip: "192.168.1.1"
     bgp_local_prefix: "10.1.0.0/28"
     bgp_peer_description: "Skylab-pfSense"
+    ipsec_static_route_enabled: false
+    ipsec_route_cidr: ""
+    ipsec_route_gateway: ""
+    ipsec_route_interface: ""
 
   tasks:
     - name: of FRR geinstalleerd is
@@ -35,19 +39,19 @@
         mode: '0640'
       notify: restart frr
 
-    - name: creert IPsec route
+    - name: Voeg optionele statische IPsec route toe
       ansible.builtin.command:
-        cmd: ip route add {{ bgp_local_prefix.split('/')[0] | regex_replace('\\.\\d+$', '.0') }}/{{ bgp_local_prefix.split('/')[1] }} via 10.1.5.1 dev eth0
-      ignore_errors: true
+        cmd: >-
+          ip route replace {{ ipsec_route_cidr }} via {{ ipsec_route_gateway }}{% if ipsec_route_interface | length > 0 %} dev {{ ipsec_route_interface }}{% endif %}
+      when:
+        - ipsec_static_route_enabled | bool
+        - ipsec_route_cidr | length > 0
+        - ipsec_route_gateway | length > 0
 
     - name: checkt BGP status
       ansible.builtin.command: vtysh -c "show bgp summary"
       register: bgp_status
       changed_when: false
-
-    - name: Toon BGP status
-      ansible.builtin.debug:
-        msg: "{{ bgp_status.stdout }}"
 
   handlers:
     - name: restart frr

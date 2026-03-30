@@ -45,6 +45,7 @@ module "vm" {
   resource_group_name = data.azurerm_resource_group.rg.name
   subnet_id           = module.network.subnet_gameserver_id
   ssh_public_key_path = var.ssh_public_key_path
+  depends_on          = [module.network]
 }
 
 module "acr" {
@@ -62,5 +63,33 @@ module "aci" {
   acr_login_server    = module.acr.login_server
   acr_username        = module.acr.admin_username
   acr_password        = module.acr.admin_password
-  depends_on = [module.acr]
+  depends_on          = [module.acr]
+}
+
+module "storage" {
+  source              = "./modules/storage"
+  prefix              = var.prefix
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+}
+
+module "vpn" {
+  source              = "./modules/vpn"
+  prefix              = var.prefix
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  subnet_id           = module.network.subnet_vpn_id
+  ssh_public_key_path = var.ssh_public_key_path
+  depends_on          = [module.network]
+}
+
+module "monitoring" {
+  source              = "./modules/monitoring"
+  prefix              = var.prefix
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  vm_ids              = module.vm.vm_ids
+  storage_account_id  = module.storage.storage_account_id
+
+  depends_on = [module.vm, module.storage]
 }

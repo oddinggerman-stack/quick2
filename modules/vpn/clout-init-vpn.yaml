@@ -1,0 +1,92 @@
+#cloud-config
+package_update: true
+packages:
+  - strongswan
+  - strongswan-pki
+  - frr
+  - frr-pythontools
+
+write_files:
+  - path: /etc/ipsec.conf
+    content: |
+      config setup
+        charondebug="ike 1, knl 1, cfg 1"
+
+      conn powerplay-tunnel
+        authby=secret
+        left=%defaultroute
+        leftsubnet=${vnet_cidr}
+        right=${skylab_public_ip}
+        rightsubnet=0.0.0.0/0
+        ike=aes256-sha256-modp2048!
+        esp=aes256-sha256!
+        keyingtries=%forever
+        ikelifetime=28800s
+        lifetime=3600s
+        dpddelay=30s
+        dpdtimeout=120s
+        dpdaction=restart
+        auto=start
+
+  - path: /etc/ipsec.secrets
+    permissions: "0600"
+    content: |
+      : PSK "${ipsec_psk}"
+
+  - path: /etc/frr/frr.conf
+    content: |
+      frr version 8.1
+      frr defaults traditional
+      hostname azure-vpn-router
+      !
+      router bgp ${azure_bgp_as}
+        bgp router-id ${azure_tunnel_ip}
+        neighbor ${skylab_tunnel_ip} remote-as ${skylab_bgp_as}
+        neighbor ${skylab_tunnel_ip} description Skylab-pfSense
+        !
+        address-family ipv4 unicast
+          network ${vnet_cidr}
+          neighbor ${skylab_tunnel_ip} activate
+        exit-address-family
+      !
+
+  - path: /etc/frr/daemons
+    content: |
+      bgpd=yes
+      staticd=yes
+      ospfd=no
+      ospf6d=no
+      ripd=no
+      ripngd=no
+      isisd=no
+      pimd=no
+      ldpd=no
+      nhrpd=no
+      eigrpd=no
+      babeld=no
+      sharpd=no
+      fabricd=no
+      vrrpd=no
+
+  - path: /etc/sysctl.d/99-ipforward.conf
+    content: |
+      net.ipv4.ip_forward=1
+
+runcmd:
+  - sysctl -p /etc/sysctl.d/99-ipforward.conf
+  - systemctl enable strongswan-starter
+  - systemctl restart strongswan-starter
+  - systemctl enable frr
+  - systemctl restart frr
+  - ip route add 192.168.1.0/24 via 10.1.5.1 dev eth0 || true
+  - |
+    cat >> /etc/netplan/90-route-skylab.yaml << 'EOF'
+    network:
+      version: 2
+      ethernets:
+        eth0:
+          routes:
+            - to: 192.168.1.0/24
+              via: 10.1.5.1
+    EOF
+  - netplan apply

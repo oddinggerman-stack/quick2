@@ -92,5 +92,5 @@ resource "local_file" "ansible_inventory" {
     ["ansible_python_interpreter=/usr/bin/python3"],
     ["ansible_ssh_common_args='-o StrictHostKeyChecking=no'"]
   ))
-  filename = "${path.root}/ansible/inventory.ini"
+  filename = "${path.root}/ansible/inventory-gameservers.ini"
 }
